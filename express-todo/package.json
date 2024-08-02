@@ -1,0 +1,30 @@
+{
+    "name": "express-todo",
+    "version": "1.0.0",
+    "main": "app.js",
+    "scripts": {
+        "start": "cross-env NODE_ENV=production node app.js",
+        "dev": "cross-env NODE_ENV=development nodemon app.js",
+        "test": "cross-env NODE_ENV=test node --test"
+    },
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "cross-env": "^7.0.3",
+        "dotenv": "^16.4.5",
+        "express": "^4.19.2",
+        "mongoose": "^8.5.2"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.8.0",
+        "eslint": "^9.8.0",
+        "eslint-config-prettier": "^9.1.0",
+        "globals": "^15.9.0",
+        "mongodb-memory-server": "^10.0.0",
+        "nodemon": "^3.1.4",
+        "prettier": "^3.3.3",
+        "supertest": "^7.0.0"
+    }
+}
