@@ -4,10 +4,7 @@ const { MongoMemoryServer } = require("mongodb-memory-server");
 
 const PORT = 3000;
 
-// const MONGODB_URI =
-//     process.env.NODE_ENV === "test"
-//         ? process.env.TEST_MONGODB_URI
-//         : process.env.MONGODB_URI;
+let mongod;
 
 const connectToDatabase = async () => {
     if (process.env.NODE_ENV !== "test") {
@@ -20,7 +17,7 @@ const connectToDatabase = async () => {
                 console.log("failed to connect to MongoDB:", err.message);
             });
     } else {
-        const mongod = await MongoMemoryServer.create();
+        mongod = await MongoMemoryServer.create();
         const uri = mongod.getUri();
         mongoose
             .connect(uri)
@@ -33,7 +30,15 @@ const connectToDatabase = async () => {
     }
 };
 
+const closeDatabase = async () => {
+    await mongoose.connection.close();
+    if (mongod) {
+        await mongod.stop();
+    }
+};
+
 module.exports = {
     PORT,
     connectToDatabase,
+    closeDatabase,
 };
