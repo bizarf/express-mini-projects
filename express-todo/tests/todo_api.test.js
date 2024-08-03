@@ -27,6 +27,49 @@ describe("there are initial todo items saved", () => {
         const response = await api.get("/api/todos");
         assert.strictEqual(response.body.length, helper.initialTodos.length);
     });
+
+    describe("adding a new todo item", () => {
+        test("successfully add one item", async () => {
+            const newTodo = {
+                title: "Pet the cat",
+                description: "Meow",
+                important: false,
+            };
+
+            await api
+                .post("/api/todos")
+                .send(newTodo)
+                .expect(201)
+                .expect("Content-Type", /application\/json/);
+
+            const todosAtEnd = await helper.todosInDb();
+            assert.strictEqual(
+                todosAtEnd.length,
+                helper.initialTodos.length + 1
+            );
+
+            const contents = todosAtEnd.map((t) => t.title);
+
+            assert(contents.includes("Pet the cat"));
+        });
+
+        test("todo without a title is not added", async () => {
+            const newTodo = {
+                title: "",
+                description: "Meow",
+                important: false,
+            };
+
+            await api
+                .post("/api/todos")
+                .send(newTodo)
+                .expect(400)
+                .expect("Content-Type", /application\/json/);
+
+            const todosAtEnd = await helper.todosInDb();
+            assert.strictEqual(todosAtEnd.length, helper.initialTodos.length);
+        });
+    });
 });
 
 after(async () => {
