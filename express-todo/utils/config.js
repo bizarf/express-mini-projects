@@ -7,7 +7,7 @@ const PORT = 3000;
 let mongod;
 
 const connectToDatabase = async () => {
-    if (process.env.NODE_ENV !== "test") {
+    if (process.env.NODE_ENV === "production") {
         mongoose
             .connect(process.env.MONGODB_URI)
             .then(() => {
