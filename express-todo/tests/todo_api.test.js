@@ -1,6 +1,7 @@
 const { test, after, beforeEach, describe } = require("node:test");
 const assert = require("node:assert");
 const Todo = require("../models/todo");
+const User = require("../models/user");
 const { closeDatabase } = require("../utils/config");
 const supertest = require("supertest");
 const app = require("../app");
@@ -11,19 +12,63 @@ const api = supertest(app);
 describe("there are initial todo items saved", () => {
     beforeEach(async () => {
         await Todo.deleteMany({});
+        await User.deleteMany({});
 
-        await Todo.insertMany(helper.initialTodos);
+        const newUser = {
+            username: helper.initialUsers[0].username,
+            name: helper.initialUsers[0].name,
+            password: helper.initialUsers[0].password,
+        };
+
+        await api
+            .post("/api/users/signup")
+            .send(newUser)
+            .expect(201)
+            .expect("Content-Type", /application\/json/);
+
+        const login = await api.post("/api/users/login").send({
+            username: helper.initialUsers[0].username,
+            password: helper.initialUsers[0].password,
+        });
+
+        for (let todo of helper.initialTodos) {
+            const newTodo = {
+                title: todo.title,
+                description: todo.description,
+                important: todo.important,
+            };
+
+            await api
+                .post("/api/todos")
+                .set("Authorization", `Bearer ${login.body.token}`)
+                .send(newTodo)
+                .expect(201)
+                .expect("Content-Type", /application\/json/);
+        }
     });
 
     test("todo items are returned in JSON", async () => {
+        const login = await api.post("/api/users/login").send({
+            username: helper.initialUsers[0].username,
+            password: helper.initialUsers[0].password,
+        });
+
         await api
             .get("/api/todos")
+            .set("Authorization", `Bearer ${login.body.token}`)
             .expect(200)
             .expect("Content-Type", /application\/json/);
     });
 
     test("there are three todo items", async () => {
-        const response = await api.get("/api/todos");
+        const login = await api.post("/api/users/login").send({
+            username: helper.initialUsers[0].username,
+            password: helper.initialUsers[0].password,
+        });
+
+        const response = await api
+            .get("/api/todos")
+            .set("Authorization", `Bearer ${login.body.token}`);
         assert.strictEqual(
             response.body.result.length,
             helper.initialTodos.length
@@ -32,6 +77,11 @@ describe("there are initial todo items saved", () => {
 
     describe("adding a new todo item", () => {
         test("successfully add one item", async () => {
+            const login = await api.post("/api/users/login").send({
+                username: helper.initialUsers[0].username,
+                password: helper.initialUsers[0].password,
+            });
+
             const newTodo = {
                 title: "Pet the cat",
                 description: "Meow",
@@ -40,11 +90,13 @@ describe("there are initial todo items saved", () => {
 
             await api
                 .post("/api/todos")
+                .set("Authorization", `Bearer ${login.body.token}`)
                 .send(newTodo)
                 .expect(201)
                 .expect("Content-Type", /application\/json/);
 
             const todosAtEnd = await helper.todosInDb();
+
             assert.strictEqual(
                 todosAtEnd.length,
                 helper.initialTodos.length + 1
@@ -58,6 +110,11 @@ describe("there are initial todo items saved", () => {
         });
 
         test("todo without a title is not added", async () => {
+            const login = await api.post("/api/users/login").send({
+                username: helper.initialUsers[0].username,
+                password: helper.initialUsers[0].password,
+            });
+
             const newTodo = {
                 title: "",
                 description: "Meow",
@@ -66,6 +123,7 @@ describe("there are initial todo items saved", () => {
 
             await api
                 .post("/api/todos")
+                .set("Authorization", `Bearer ${login.body.token}`)
                 .send(newTodo)
                 .expect(400)
                 .expect("Content-Type", /application\/json/);
@@ -75,6 +133,11 @@ describe("there are initial todo items saved", () => {
         });
 
         test("todo without a description is added", async () => {
+            const login = await api.post("/api/users/login").send({
+                username: helper.initialUsers[0].username,
+                password: helper.initialUsers[0].password,
+            });
+
             const newTodo = {
                 title: "Pet the cat",
                 description: "",
@@ -83,6 +146,7 @@ describe("there are initial todo items saved", () => {
 
             await api
                 .post("/api/todos")
+                .set("Authorization", `Bearer ${login.body.token}`)
                 .send(newTodo)
                 .expect(201)
                 .expect("Content-Type", /application\/json/);
@@ -101,9 +165,15 @@ describe("there are initial todo items saved", () => {
 
     describe("single todo get", () => {
         test("is successful", async () => {
+            const login = await api.post("/api/users/login").send({
+                username: helper.initialUsers[0].username,
+                password: helper.initialUsers[0].password,
+            });
+
             const todosAtStart = await helper.todosInDb();
             await api
                 .get(`/api/todos/${todosAtStart[0].id}`)
+                .set("Authorization", `Bearer ${login.body.token}`)
                 .expect(200)
                 .expect("Content-Type", /application\/json/)
                 .expect((res) => {
@@ -113,8 +183,14 @@ describe("there are initial todo items saved", () => {
         });
 
         test("fails", async () => {
+            const login = await api.post("/api/users/login").send({
+                username: helper.initialUsers[0].username,
+                password: helper.initialUsers[0].password,
+            });
+
             await api
                 .get(`/api/todos/66af9dc1185b2ca5e45675bf`)
+                .set("Authorization", `Bearer ${login.body.token}`)
                 .expect(404)
                 .expect("Content-Type", /application\/json/);
         });
@@ -122,9 +198,16 @@ describe("there are initial todo items saved", () => {
 
     describe("delete", () => {
         test("successful", async () => {
+            const login = await api.post("/api/users/login").send({
+                username: helper.initialUsers[0].username,
+                password: helper.initialUsers[0].password,
+            });
+
             const todosAtStart = await helper.todosInDb();
+
             await api
                 .delete(`/api/todos/${todosAtStart[0].id}`)
+                .set("Authorization", `Bearer ${login.body.token}`)
                 .expect(200)
                 .expect("Content-Type", /application\/json/);
 
@@ -139,8 +222,14 @@ describe("there are initial todo items saved", () => {
         });
 
         test("unsuccessful", async () => {
+            const login = await api.post("/api/users/login").send({
+                username: helper.initialUsers[0].username,
+                password: helper.initialUsers[0].password,
+            });
+
             await api
                 .delete(`/api/todos/66af9dc1185b2ca5e45675bf`)
+                .set("Authorization", `Bearer ${login.body.token}`)
                 .expect(404)
                 .expect("Content-Type", /application\/json/);
 
@@ -151,6 +240,11 @@ describe("there are initial todo items saved", () => {
 
     describe("update", () => {
         test("successful", async () => {
+            const login = await api.post("/api/users/login").send({
+                username: helper.initialUsers[0].username,
+                password: helper.initialUsers[0].password,
+            });
+
             const todosAtStart = await helper.todosInDb();
 
             const updatedTodo = {
@@ -161,6 +255,7 @@ describe("there are initial todo items saved", () => {
 
             await api
                 .put(`/api/todos/${todosAtStart[0].id}`)
+                .set("Authorization", `Bearer ${login.body.token}`)
                 .send(updatedTodo)
                 .expect(200)
                 .expect("Content-Type", /application\/json/)
