@@ -4,6 +4,7 @@ const { MongoMemoryServer } = require("mongodb-memory-server");
 
 const PORT = 3000;
 
+// this is for MongoMemoryServer
 let mongod;
 
 const connectToDatabase = async () => {
